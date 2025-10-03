@@ -22,9 +22,20 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
+const allowedOrigins = [
+  "http://localhost:5173",               // local dev
+  "https://your-frontend-url.vercel.app" // production frontend
+];
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: function(origin, callback) {
+      if (!origin) return callback(null, true); // allow Postman/server requests
+      if (allowedOrigins.indexOf(origin) === -1) {
+        return callback(new Error("CORS not allowed"), false);
+      }
+      return callback(null, true);
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
@@ -34,15 +45,21 @@ app.use(
     ],
   })
 );
+
 let tokenBlacklist = [];
 
 app.options(/.*/, cors());
 
-let PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`server as run ${PORT}`);
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}).catch(err => {
+  console.error("DB connection failed:", err);
 });
+
 connectDB();
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
