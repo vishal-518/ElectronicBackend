@@ -23,28 +23,26 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 const allowedOrigins = [
-  "http://localhost:5173",               // local dev
-  "https://electronic-fronted-ql9q.vercel.app/" // production frontend
+  "http://localhost:5173",
+  "https://electronic-fronted-ql9q.vercel.app"  
 ];
 
-app.use(
-  cors({
-    origin: function(origin, callback) {
-      if (!origin) return callback(null, true); // allow Postman/server requests
-      if (allowedOrigins.indexOf(origin) === -1) {
-        return callback(new Error("CORS not allowed"), false);
-      }
-      return callback(null, true);
-    },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Requested-With",
-      "Accept",
-    ],
-  })
-);
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      return callback(new Error("CORS not allowed"), false);
+    }
+    return callback(null, true);
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  credentials: true
+}));
+
+
+app.options("*", cors());
+
 
 let tokenBlacklist = [];
 
