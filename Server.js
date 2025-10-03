@@ -24,7 +24,7 @@ const app = express();
 app.use(express.json());
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://electronic-fronted-ql9q-qyvnjnznk-vishals-projects-0b54ee58.vercel.app/"  
+  "https://electronic-fronted-ql9q-qyvnjnznk-vishals-projects-0b54ee58.vercel.app"  
 ];
 
 app.use(cors({
@@ -49,14 +49,9 @@ let tokenBlacklist = [];
 app.options(/.*/, cors());
 
 const PORT = process.env.PORT || 5000;
-
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}).catch(err => {
-  console.error("DB connection failed:", err);
-});
+app.listen(PORT,()=>{
+  
+})
 
 connectDB();
 
