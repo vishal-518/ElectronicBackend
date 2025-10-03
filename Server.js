@@ -852,8 +852,6 @@ app.post("/updatepassword", verifyToken, async (req, res) => {
   }
 });
 
-app.get("/", () => {
-  res.json({
-    status: 200,
-  });
+app.get('/', (req, res) => {
+  res.json({ message: 'Hello from Express on Vercel!' });
 });
