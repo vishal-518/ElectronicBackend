@@ -24,7 +24,7 @@ const app = express();
 app.use(express.json());
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://electronic-fronted-ql9q.vercel.app"  
+  "https://electronic-fronted-ql9q-qyvnjnznk-vishals-projects-0b54ee58.vercel.app/"  
 ];
 
 app.use(cors({
