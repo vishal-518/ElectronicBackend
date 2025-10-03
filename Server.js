@@ -24,7 +24,7 @@ const app = express();
 app.use(express.json());
 const allowedOrigins = [
   "http://localhost:5173",               // local dev
-  "https://your-frontend-url.vercel.app" // production frontend
+  "https://electronic-fronted-ql9q.vercel.app/" // production frontend
 ];
 
 app.use(
