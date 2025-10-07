@@ -780,3 +780,8 @@ app.post('/updatepassword', verifyToken, async (req, res) => {
     }
 })
 
+app.get('/',(req,res)=>{
+    res.json({
+        msg:'success'
+    })
+})
