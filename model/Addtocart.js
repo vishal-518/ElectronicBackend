@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
 
 let CartSchema = mongoose.Schema({
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    guestToken: { type: String, default: null },
     product_name: { type: String, required: true },
     product_titel: { type: String, required: true },
     product_price: { type: Number, required: true },
@@ -22,10 +23,10 @@ let CartSchema = mongoose.Schema({
         lat: { type: Number },
         lng: { type: Number }
     },
-     delivery: {
-    type: mongoose.Schema.Types.Mixed,
-    required: false
-  }
+    delivery: {
+        type: mongoose.Schema.Types.Mixed,
+        required: false
+    }
 })
 
 let Cart = mongoose.model('cart', CartSchema)

@@ -13,26 +13,33 @@ import crypto from "crypto";
 import nodemailer from "nodemailer";
 import Contact from './model/Contact.js'
 import { OAuth2Client } from "google-auth-library";
-import coneectDB from './config/db.js'
 import pincodeDirectory from 'india-pincode-lookup';
 import axios from 'axios'
 import geolib from 'geolib';
-
+import sgMail from "@sendgrid/mail";
+import connectDB from './config/db.js';
+import { v4 as uuidv4 } from "uuid";
+import cookieParser from "cookie-parser";
 
 
 dotenv.config()
 
 const app = express()
 app.use(express.json())
+app.use(cookieParser());
 
 app.use(cors({
-    origin: ["http://localhost:5173", "https://electronic-fronted.vercel.app"], // add Vercel URL
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  origin: ["http://localhost:5173", "https://electronic-fronted.vercel.app"], 
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  credentials: true, 
 }));
 
 
-app.options(/.*/, cors());
+app.options(/.*/, cors({
+ origin: ["http://localhost:5173", "https://electronic-fronted.vercel.app"],
+  credentials: true
+}));
 
 
 let PORT = process.env.PORT
@@ -40,14 +47,16 @@ let PORT = process.env.PORT
 app.listen(PORT, () => {
     console.log(`server as run ${PORT}`)
 })
-coneectDB()
-
+let tokenBlacklist=[]
+connectDB()
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET
 });
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 
 app.post('/signup', async (req, res) => {
@@ -68,6 +77,16 @@ app.post('/signup', async (req, res) => {
             location,
             otpExpires: Date.now() + 10 * 60 * 1000
         });
+
+        // const msg = {
+        //     to: email,
+        //     from: "verified_sender@yourdomain.com",
+        //     subject: "Your OTP Code",
+        //     text: `Your OTP code is ${otp}`,
+        //     html: `<p>Your OTP code is <strong>${otp}</strong></p>`,
+        // }
+
+        // await sgMail.send(msg)
 
         let transporter = nodemailer.createTransport({
             service: 'gmail',
@@ -92,6 +111,32 @@ app.post('/signup', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ status: 500, msg: 'Server error' });
+    }
+});
+
+app.post('/verify-otp', async (req, res) => {
+    const { email, otp } = req.body;
+    try {
+        let user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ msg: 'User not found' });
+
+        if (String(user.otp) !== String(otp)) {
+            return res.status(400).json({ msg: 'Invalid OTP' });
+        }
+
+        if (user.otpExpires < Date.now()) {
+            return res.status(400).json({ msg: 'OTP expired' });
+        }
+
+        user.isVerified = true;
+        user.otp = null;
+        user.otpExpires = null;
+        await user.save();
+
+        res.status(200).json({ msg: 'successfull' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ msg: 'Server error' });
     }
 });
 
@@ -143,29 +188,7 @@ app.post("/update-profile", verifyToken, async (req, res) => {
     }
 })
 
-app.post('/verify-otp', async (req, res) => {
-    const { email, otp } = req.body;
-    try {
-        let user = await User.findOne({ email });
-        if (!user) return res.status(404).json({ msg: 'User not found' });
 
-        if (user.otp !== otp.toString()) {
-            return res.status(400).json({ msg: 'Invalid OTP' });
-        }
-
-        if (user.otpExpires < Date.now()) {
-            return res.status(400).json({ msg: 'OTP expired' });
-        }
-
-        user.isVerified = true;
-        await user.save();
-
-        res.status(200).json({ msg: 'successfull' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ msg: 'Server error' });
-    }
-});
 
 app.post("/auth/google", async (req, res) => {
     const { credential } = req.body;
@@ -234,7 +257,7 @@ app.post("/logout", verifyToken, async (req, res) => {
         return res.status(400).json({ msg: "Token not found" });
     }
 
-    tokenBlacklist.push(token); // token blacklist me daal do
+    tokenBlacklist.push(token); 
     res.json({ msg: "Logged out successfully" });
 });
 
@@ -347,27 +370,56 @@ app.post('/addproduct', async (req, res) => {
 })
 
 app.get('/productapi', async (req, res) => {
-    console.log(req.body)
-    const product = await Allproduct.find({})
-    if (product) {
-        res.json({
-            status: 200,
-            msg: 'success',
-            productdata: product
-        })
-    }
-})
+  try {
+    const product = await Allproduct.find({});
+    res.json({
+      status: 200,
+      msg: 'success',
+      productdata: product,
+    });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    res.status(500).json({
+      status: 500,
+      msg: 'Internal Server Error',
+      error: error.message,
+    });
+  }
+});
+
 
 app.post('/addtocart', verifyToken, async (req, res) => {
-    const { product_name,product_IsStock, product_price, product_return, product_des, product_img, product_oldPrice, product_brand, product_type, product_warranty, product_discount, product_titel, location ,delivery} = req.body
-    let existcart = await Cart.findOne({ user: req.user.id, product_name });
-    if (existcart) {
+  const {
+    product_name,
+    product_IsStock,
+    product_price,
+    product_return,
+    product_des,
+    product_img,
+    product_oldPrice,
+    product_brand,
+    product_type,
+    product_warranty,
+    product_discount,
+    product_titel,
+    location,
+    delivery,
+  } = req.body;
+
+  try {
+    let existcart;
+
+    // ✅ If logged-in user
+    if (req.user) {
+      existcart = await Cart.findOne({ user: req.user.id, product_name });
+      if (existcart) {
         return res.json({
-            status: 404,
-            msg: 'Cart Already Added'
+          status: 400,
+          msg: "Product already in your cart",
         });
-    }
-    let cart = await Cart({
+      }
+
+      const cart = new Cart({
         user: req.user.id,
         delivery,
         product_img,
@@ -382,25 +434,112 @@ app.post('/addtocart', verifyToken, async (req, res) => {
         product_titel,
         product_return,
         location,
-        product_IsStock
-    })
+        product_IsStock,
+      });
 
-    await cart.save()
-    res.json({
+      await cart.save();
+      return res.json({
         status: 200,
-        msg: 'Cart  Added Success  '
-    })
+        msg: "Product added to your cart (Logged-in user)",
+      });
+    }
 
-})
+    // ✅ If guest user
+    if (req.guestToken) {
+      existcart = await Cart.findOne({
+        guestToken: req.guestToken,
+        product_name,
+      });
+
+      if (existcart) {
+        return res.json({
+          status: 400,
+          msg: "Product already in guest cart",
+        });
+      }
+
+      const cart = new Cart({
+        guestToken: req.guestToken,
+        delivery,
+        product_img,
+        product_name,
+        product_price,
+        product_des,
+        product_oldPrice,
+        product_brand,
+        product_type,
+        product_warranty,
+        product_discount,
+        product_titel,
+        product_return,
+        location,
+        product_IsStock,
+      });
+
+      await cart.save();
+      return res.json({
+        status: 200,
+        msg: "Product added to cart successfully (Guest)",
+      });
+    }
+
+    res.json({ status: 400, msg: "Something went wrong" });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+});
+
+
+app.post('/merge-cart', async (req, res) => {
+  try {
+    const { userId, guestToken } = req.body;
+      if (!userId || !guestToken) return res.status(400).json({ msg: "Missing data" });
+
+    const guestCart = await Cart.find({ guestToken });
+    for (const item of guestCart) {
+      const exists = await Cart.findOne({
+        user: userId,
+        product_name: item.product_name,
+      });
+
+      if (!exists) {
+        item.user = userId;
+        item.guestToken = null;
+        await item.save();
+      } else {
+        await Cart.deleteOne({ _id: item._id }); // duplicate remove
+      }
+    }
+
+    res.json({
+      status: 200,
+      msg: "Guest cart merged successfully",
+    });
+  } catch (err) {
+    res.status(500).json({
+      status: 500,
+      msg: "Error merging cart",
+      error: err.message,
+    });
+  }
+});
+
 
 app.get('/cartapi', verifyToken, async (req, res) => {
     try {
-        let Cartdata = await Cart.find({ user: req.user.id });
-
+        let cartItems;
+        if (req.user) {
+            cartItems = await Cart.find({ user: req.user.id });
+        } else if (req.guestToken) {
+            cartItems = await Cart.find({ guestToken: req.guestToken });
+        } else {
+            cartItems = [];
+        }
         res.json({
             status: 200,
             msg: 'success',
-            cartapidata: Cartdata
+            cartapidata: cartItems
         });
     } catch (error) {
         console.error(error);
@@ -410,6 +549,7 @@ app.get('/cartapi', verifyToken, async (req, res) => {
         });
     }
 });
+
 
 app.post('/removecart', verifyToken, async (req, res) => {
     let remove = await Cart.findOneAndDelete({ _id: req.body._id })
@@ -780,8 +920,8 @@ app.post('/updatepassword', verifyToken, async (req, res) => {
     }
 })
 
-app.get('/',(req,res)=>{
+app.get('/', (req, res) => {
     res.json({
-        msg:'success'
+        msg: 'success'
     })
 })
