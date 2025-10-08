@@ -28,30 +28,20 @@ const app = express()
 app.use(express.json())
 app.use(cookieParser());
 
-// app.use(cors({
-//   origin: ["http://localhost:5173", "https://electronic-fronted.vercel.app"], 
-//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-//   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-//   credentials: true, 
-// }));
 
-
-// app.options(/.*/, cors({
-//  origin: ["http://localhost:5173", "https://electronic-fronted.vercel.app"],
-//   credentials: true
-// }));
 
 const allowedOrigins = [
-  "http://localhost:5173",
-  "https://electronic-fronted.vercel.app"
+  "http://localhost:5173/",
+  process.env.FRONTEND_URL
 ];
 
 app.use(cors({
   origin: function(origin, callback){
-    if(!origin) return callback(null, true); // allow Postman, server-to-server
+    if(!origin) return callback(null, true); // Postman etc allowed
     if(allowedOrigins.indexOf(origin) !== -1){
       callback(null, true);
     } else {
+      console.log("Blocked by CORS:", origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -59,6 +49,9 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
 }));
+
+
+
 
 let PORT = process.env.PORT
 
