@@ -28,37 +28,33 @@ const app = express()
 app.use(express.json())
 app.use(cookieParser());
 
-
-
 const allowedOrigins = [
-  "http://localhost:5173/",
-  process.env.FRONTEND_URL
+    "http://localhost:5173",
+    "https://electronic-fronted.vercel.app"
 ];
 
 app.use(cors({
-  origin: function(origin, callback){
-    if(!origin) return callback(null, true); // Postman etc allowed
-    if(allowedOrigins.indexOf(origin) !== -1){
-      callback(null, true);
-    } else {
-      console.log("Blocked by CORS:", origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        } else {
+            return callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
 }));
 
-
-
+// app.options('/*', cors());  
 
 let PORT = process.env.PORT
 
 app.listen(PORT, () => {
     console.log(`server as run ${PORT}`)
 })
-let tokenBlacklist=[]
+let tokenBlacklist = []
 connectDB()
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -200,7 +196,6 @@ app.post("/update-profile", verifyToken, async (req, res) => {
 })
 
 
-
 app.post("/auth/google", async (req, res) => {
     const { credential } = req.body;
     try {
@@ -268,7 +263,7 @@ app.post("/logout", verifyToken, async (req, res) => {
         return res.status(400).json({ msg: "Token not found" });
     }
 
-    tokenBlacklist.push(token); 
+    tokenBlacklist.push(token);
     res.json({ msg: "Logged out successfully" });
 });
 
@@ -381,158 +376,160 @@ app.post('/addproduct', async (req, res) => {
 })
 
 app.get('/productapi', async (req, res) => {
-  try {
-    const product = await Allproduct.find({});
-    res.json({
-      status: 200,
-      msg: 'success',
-      productdata: product,
-    });
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    res.status(500).json({
-      status: 500,
-      msg: 'Internal Server Error',
-      error: error.message,
-    });
-  }
+    try {
+        const product = await Allproduct.find({});
+        res.json({
+            status: 200,
+            msg: 'success',
+            productdata: product,
+        });
+    } catch (error) {
+        console.error("Error fetching products:", error);
+        res.status(500).json({
+            status: 500,
+            msg: 'Internal Server Error',
+            error: error.message,
+        });
+    }
 });
-
 
 app.post('/addtocart', verifyToken, async (req, res) => {
-  const {
-    product_name,
-    product_IsStock,
-    product_price,
-    product_return,
-    product_des,
-    product_img,
-    product_oldPrice,
-    product_brand,
-    product_type,
-    product_warranty,
-    product_discount,
-    product_titel,
-    location,
-    delivery,
-  } = req.body;
-
-  try {
-    let existcart;
-
-    // ✅ If logged-in user
-    if (req.user) {
-      existcart = await Cart.findOne({ user: req.user.id, product_name });
-      if (existcart) {
-        return res.json({
-          status: 400,
-          msg: "Product already in your cart",
-        });
-      }
-
-      const cart = new Cart({
-        user: req.user.id,
-        delivery,
-        product_img,
+    const {
         product_name,
+        product_IsStock,
         product_price,
+        product_return,
         product_des,
+        product_img,
         product_oldPrice,
         product_brand,
         product_type,
         product_warranty,
         product_discount,
         product_titel,
-        product_return,
         location,
-        product_IsStock,
-      });
-
-      await cart.save();
-      return res.json({
-        status: 200,
-        msg: "Product added to your cart (Logged-in user)",
-      });
-    }
-
-    // ✅ If guest user
-    if (req.guestToken) {
-      existcart = await Cart.findOne({
-        guestToken: req.guestToken,
-        product_name,
-      });
-
-      if (existcart) {
-        return res.json({
-          status: 400,
-          msg: "Product already in guest cart",
-        });
-      }
-
-      const cart = new Cart({
-        guestToken: req.guestToken,
         delivery,
-        product_img,
-        product_name,
-        product_price,
-        product_des,
-        product_oldPrice,
-        product_brand,
-        product_type,
-        product_warranty,
-        product_discount,
-        product_titel,
-        product_return,
-        location,
-        product_IsStock,
-      });
+    } = req.body;
 
-      await cart.save();
-      return res.json({
-        status: 200,
-        msg: "Product added to cart successfully (Guest)",
-      });
+    try {
+        let existcart;
+        if (req.user) {
+            existcart = await Cart.findOne({ user: req.user.id, product_name });
+            if (existcart) {
+                return res.json({
+                    status: 400,
+                    msg: "Product already in your cart",
+                });
+            }
+
+            const cart = new Cart({
+                user: req.user.id,
+                delivery,
+                product_img,
+                product_name,
+                product_price,
+                product_des,
+                product_oldPrice,
+                product_brand,
+                product_type,
+                product_warranty,
+                product_discount,
+                product_titel,
+                product_return,
+                location,
+                product_IsStock,
+            });
+
+            await cart.save();
+            return res.json({
+                status: 200,
+                msg: "Product added to your cart ",
+            });
+        }
+
+        if (req.guestToken) {
+            existcart = await Cart.findOne({
+                guestToken: req.guestToken,
+                product_name,
+            });
+
+            if (existcart) {
+                return res.json({
+                    status: 400,
+                    msg: "Product already in cart",
+                });
+            }
+
+            const cart = new Cart({
+                guestToken: req.guestToken,
+                delivery,
+                product_img,
+                product_name,
+                product_price,
+                product_des,
+                product_oldPrice,
+                product_brand,
+                product_type,
+                product_warranty,
+                product_discount,
+                product_titel,
+                product_return,
+                location,
+                product_IsStock,
+            });
+
+            await cart.save();
+            return res.json({
+                status: 200,
+                msg: "Product added to your cart",
+            });
+        }
+
+        res.json({ status: 400, msg: "Something went wrong" });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ msg: "Server error", error: err.message });
     }
-
-    res.json({ status: 400, msg: "Something went wrong" });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ msg: "Server error", error: err.message });
-  }
 });
 
+app.post("/merge-cart", async (req, res) => {
+  const { userId, guestToken } = req.body;
 
-app.post('/merge-cart', async (req, res) => {
   try {
-    const { userId, guestToken } = req.body;
-      if (!userId || !guestToken) return res.status(400).json({ msg: "Missing data" });
-
     const guestCart = await Cart.find({ guestToken });
-    for (const item of guestCart) {
-      const exists = await Cart.findOne({
-        user: userId,
-        product_name: item.product_name,
-      });
+    const userCart = await Cart.find({ user: userId });
 
-      if (!exists) {
-        item.user = userId;
-        item.guestToken = null;
-        await item.save();
+    // Merge logic
+    for (const item of guestCart) {
+      const existingItem = userCart.find(
+        (u) => u.productId.toString() === item.productId.toString()
+      );
+
+      if (existingItem) {
+        existingItem.quantity += item.quantity;
+        await existingItem.save();
       } else {
-        await Cart.deleteOne({ _id: item._id }); // duplicate remove
+        await Cart.create({
+          user: userId,
+          productId: item.productId,
+          quantity: item.quantity,
+        });
       }
     }
+
+    // Delete guest cart
+    await Cart.deleteMany({ guestToken });
+
+    const updatedCart = await Cart.find({ user: userId }).populate("productId");
 
     res.json({
       status: 200,
       msg: "Guest cart merged successfully",
+      cartapidata: updatedCart,
     });
   } catch (err) {
-    res.status(500).json({
-      status: 500,
-      msg: "Error merging cart",
-      error: err.message,
-    });
+    console.error(err);
+    res.status(500).json({ status: 500, msg: "Cart merge failed" });
   }
 });
 
