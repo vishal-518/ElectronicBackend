@@ -28,28 +28,12 @@ const app = express()
 app.use(express.json())
 app.use(cookieParser());
 
-const allowedOrigins = [
-    "http://localhost:5173",
-    "https://electronicfrontend.vercel.app"  // deployed frontend
-];
-
 app.use(cors({
-    origin: function(origin, callback){
-        // allow Postman or server-to-server requests
-        if (!origin) return callback(null, true);
-
-        if (allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            console.log("Blocked by CORS:", origin);
-            callback(new Error("Not allowed by CORS"));
-        }
-    },
+    origin: "*",      // Abhi sab allow
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
 }));
-
 
 let PORT = process.env.PORT
 
