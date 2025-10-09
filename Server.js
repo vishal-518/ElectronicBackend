@@ -28,12 +28,27 @@ const app = express()
 app.use(express.json())
 app.use(cookieParser());
 
+import cors from 'cors';
+
+const allowedOrigins = [
+  "http://localhost:5173", // local frontend
+  "https://your-frontend-deployed-url.vercel.app" // deployed frontend
+];
+
 app.use(cors({
-    origin: "*",      // Abhi sab allow
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true); // allow Postman/server requests
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true, // allow cookies/auth headers
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
 }));
+
 
 let PORT = process.env.PORT
 
