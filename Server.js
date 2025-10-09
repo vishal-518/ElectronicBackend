@@ -30,16 +30,19 @@ app.use(cookieParser());
 
 const allowedOrigins = [
     "http://localhost:5173",
-    "https://electronic-fronted.vercel.app"
+    "https://electronicfrontend.vercel.app"  // deployed frontend
 ];
 
 app.use(cors({
-    origin: function (origin, callback) {
+    origin: function(origin, callback){
+        // allow Postman or server-to-server requests
         if (!origin) return callback(null, true);
+
         if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
+            callback(null, true);
         } else {
-            return callback(new Error('Not allowed by CORS'));
+            console.log("Blocked by CORS:", origin);
+            callback(new Error("Not allowed by CORS"));
         }
     },
     credentials: true,
@@ -47,7 +50,6 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
 }));
 
-// app.options('/*', cors());  
 
 let PORT = process.env.PORT
 
