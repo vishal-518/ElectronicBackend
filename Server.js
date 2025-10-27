@@ -97,20 +97,15 @@ app.post('/signup', async (req, res) => {
 
         // await sgMail.send(msg)
 
-        let transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: "jakhar365365@gmail.com",
-                pass: "uvdz tbyt oxch qmkf"
-            }
-        })
-
-        await transporter.sendMail({
-            from: "My App",
+        const msg = {
             to: email,
+            from: "jakhar365365@gmail.com",
             subject: "Your OTP Code",
             text: `Your OTP code is ${otp}`,
-        })
+            html: `<p>Your OTP code is <strong>${otp}</strong></p>`,
+        }
+
+        await sgMail.send(msg)
 
         await newuser.save();
         res.json({
@@ -282,13 +277,15 @@ app.post('/forgot-password', async (req, res) => {
     user.otpExpires = otpExpiry;
     await user.save();
 
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: "jakhar365365@gmail.com",
-            pass: "uvdz tbyt oxch qmkf"
-        }
-    });
+    const msg = {
+        to: email,
+        from: "jakhar365365@gmail.com",
+        subject: "Password Reset OTP",
+        text: `Your password reset OTP is ${otpCode}`,
+        html: `<p>Your password reset OTP is <strong>${otpCode}</strong></p>`,
+    };
+
+    await sgMail.send(msg);
 
     const mailOptions = {
         from: "My App",
