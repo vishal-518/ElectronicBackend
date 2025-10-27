@@ -87,19 +87,9 @@ app.post('/signup', async (req, res) => {
             otpExpires: Date.now() + 10 * 60 * 1000
         });
 
-        // const msg = {
-        //     to: email,
-        //     from: "verified_sender@yourdomain.com",
-        //     subject: "Your OTP Code",
-        //     text: `Your OTP code is ${otp}`,
-        //     html: `<p>Your OTP code is <strong>${otp}</strong></p>`,
-        // }
-
-        // await sgMail.send(msg)
-
         const msg = {
             to: email,
-            from: "jakhar365365@gmail.com",
+            from: "verified_sender@yourdomain.com",
             subject: "Your OTP Code",
             text: `Your OTP code is ${otp}`,
             html: `<p>Your OTP code is <strong>${otp}</strong></p>`,
@@ -107,11 +97,21 @@ app.post('/signup', async (req, res) => {
 
         await sgMail.send(msg)
 
-        await newuser.save();
-        res.json({
-            status: 200,
-            msg: 'Signup successful, OTP sent to email'
-        });
+        // const msg = {
+        //     to: email,
+        //     from: "jakhar365365@gmail.com",
+        //     subject: "Your OTP Code",
+        //     text: `Your OTP code is ${otp}`,
+        //     html: `<p>Your OTP code is <strong>${otp}</strong></p>`,
+        // }
+
+        // await sgMail.send(msg)
+
+        // await newuser.save();
+        // res.json({
+        //     status: 200,
+        //     msg: 'Signup successful, OTP sent to email'
+        // });
     } catch (err) {
         console.error(err);
         res.status(500).json({ status: 500, msg: 'Server error' });
