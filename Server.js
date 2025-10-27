@@ -31,7 +31,9 @@ app.use(cookieParser());
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://electronicfronted.vercel.app" 
+  "https://electronicfronted.vercel.app" ,
+  "https://electronicbackend-bzcr.onrender.com"
+
 ];
 
 app.use(cors({
