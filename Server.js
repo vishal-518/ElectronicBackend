@@ -87,15 +87,22 @@ app.post('/signup', async (req, res) => {
             otpExpires: Date.now() + 10 * 60 * 1000
         });
 
-        const msg = {
-            to: email,
-            from: "verified_sender@yourdomain.com",
-            subject: "Your OTP Code",
-            text: `Your OTP code is ${otp}`,
-            html: `<p>Your OTP code is <strong>${otp}</strong></p>`,
-        }
 
-        await sgMail.send(msg)
+        const msg = {
+  to: email,
+  from: process.env.FROM_EMAIL, 
+  subject: "Your OTP Code",
+  text: `Your OTP code is ${otp}`,
+  html: `<p>Your OTP code is <strong>${otp}</strong></p>`,
+}
+
+await sgMail.send(msg)
+await newuser.save();
+res.json({
+  status: 200,
+  msg: 'Signup successful, OTP sent to email'
+});
+
 
         // const msg = {
         //     to: email,
